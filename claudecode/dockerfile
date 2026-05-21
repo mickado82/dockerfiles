@@ -1,0 +1,59 @@
+# Dockerfile used to build a docker image to dev using claude code 
+# Usual binairies used to build, run and test apps are included (java, maven, node)
+# More can be added (Gradle, Python...)
+# docker build -t claude-code-image:corretto17-mvn394-nvm . 
+
+FROM debian:stable
+
+LABEL maintainer="morin.mickael.fr@gmail.com" \
+      java.version="17-corretto" \
+      maven.version="3.9.4"
+
+ENV JDK_DISTRIB=amazon-corretto-17-x64-linux-jdk \
+    MAVEN_VERSION=3.9.4
+
+RUN useradd -m -s /bin/bash devuser
+RUN apt update && apt install -y git curl
+
+USER devuser
+WORKDIR /home/devuser
+
+RUN curl -LO https://corretto.aws/downloads/latest/${JDK_DISTRIB}.tar.gz \
+    && tar -xzf ${JDK_DISTRIB}.tar.gz \
+    && JAVA_DIR=$(tar -tzf ${JDK_DISTRIB}.tar.gz | head -1 | cut -f1 -d'/') \
+    && mv "${JAVA_DIR}" ~/${JDK_DISTRIB} \
+    && rm ${JDK_DISTRIB}.tar.gz
+
+ENV JAVA_HOME="/home/devuser/${JDK_DISTRIB}"
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+RUN curl -LO https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz -o apache-maven-${MAVEN_VERSION}-bin.tar.gz
+RUN tar xvf apache-maven-${MAVEN_VERSION}-bin.tar.gz
+RUN rm apache-maven-${MAVEN_VERSION}-bin.tar.gz
+
+ENV MAVEN_HOME="/home/devuser/apache-maven-${MAVEN_VERSION}"
+ENV PATH="${MAVEN_HOME}/bin:${PATH}"
+
+ENV NVM_DIR="/home/devuser/.nvm" \
+    NODE_DEFAULT_VERSION=22
+
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash \
+    && . "${NVM_DIR}/nvm.sh" \
+    && nvm install 16 \
+    && nvm install 18 \
+    && nvm install 20 \
+    && nvm install 22 \
+    && nvm alias default ${NODE_DEFAULT_VERSION} \
+    && nvm cache clear
+
+ENV PATH="${NVM_DIR}/versions/node/v${NODE_DEFAULT_VERSION}/bin:${PATH}"
+
+RUN echo 'export NVM_DIR="$HOME/.nvm"'                                >> ~/.bashrc \
+    && echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"'       >> ~/.bashrc \
+    && echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> ~/.bashrc
+
+
+# Native Claude Code installer
+RUN curl -fsSL https://claude.ai/install.sh | bash
+ENV PATH="/home/devuser/.local/bin:${PATH}"
+
