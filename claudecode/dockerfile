@@ -1,19 +1,20 @@
 # Dockerfile used to build a docker image to dev using claude code 
-# Usual binairies used to build, run and test apps are included (java, maven, node)
+# Usual binairies used to build, run and test apps are included (java, maven, node, serverless fwk)
 # More can be added (Gradle, Python...)
 
 # To build the image : 
-# docker build -t claude-code-image:corretto17-mvn394-nvm . 
+# docker build -t claude-code-image:corretto17-mvn394-nvm-sls331 . 
 
 # To use it, simply run it and mount your project(s) directory
-#docker run --rm -it \
+# docker run --rm -it \
 #  -v ~/.claude:/home/devuser/.claude \
 #  -v ~/.ssh:/home/devuser/.ssh:ro \
 #  -v ~/workspace/myfirstproject:/workspace/myfirstproject \
 #  -v ~/workspace/myfirstproject:/workspace/myfirstproject \
 #  -v ~/.claude.json:/home/devuser/.claude.json \
+#  -v ~/.gitconfig:/home/devuser/.gitconfig \
 #  -w /workspace \
-#  claude-code-image:corretto17-mvn394-nvm
+#  claude-code-image:corretto17-mvn394-nvm-sls331
 
 FROM debian:stable
 
@@ -64,6 +65,8 @@ RUN echo 'export NVM_DIR="$HOME/.nvm"'                                >> ~/.bash
     && echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"'       >> ~/.bashrc \
     && echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> ~/.bashrc
 
+RUN curl -o- -L https://slss.io/install -k | VERSION=3.31.0 bash
+RUN export PATH="$HOME/.serverless/bin:$PATH"
 
 # Native Claude Code installer
 RUN curl -fsSL https://claude.ai/install.sh | bash
